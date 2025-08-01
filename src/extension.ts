@@ -190,25 +190,35 @@ class TreeItem extends vscode.TreeItem {
         super(label, collapsibleState);
         this.type = type;
         this.data = data;
-        if (command) {
-            this.command = command;
-        }
-        this.contextValue = type;
         
-        // Style folder labels differently
-        if (type === 'folder') {
-	
-            // Make folder labels muted and non-interactive
-            this.contextValue = 'folder-label';
-            // Add visual indicator that this is a label/separator
-            this.label = `— ${label} —`;
-            // Make it non-selectable
-            this.command = undefined;
-            this.tooltip = undefined;
-            // Use collapsibleState None to ensure it's not expandable
-            this.collapsibleState = vscode.TreeItemCollapsibleState.None;
-            // Use description to make text appear in muted color (VS Code's built-in styling)
-            this.description = true;
+        // Apply styling based on type
+        switch(type) {
+            case 'module':
+                this.iconPath = new vscode.ThemeIcon('package', new vscode.ThemeColor('descriptionForeground'));
+                this.contextValue = 'module';
+                break;
+            case 'folder':
+                // Make folder labels muted and non-interactive
+                this.contextValue = 'folder-label';
+                // Add visual indicator that this is a label/separator
+                this.label = '';
+                // Make it non-selectable
+                this.command = undefined;
+                this.tooltip = undefined;
+                // Use collapsibleState None to ensure it's not expandable
+                this.collapsibleState = vscode.TreeItemCollapsibleState.None;
+                // Use description to make text appear in muted color
+                this.description = label;
+
+                
+                break;
+            case 'file':
+                this.iconPath = new vscode.ThemeIcon('file');
+                this.contextValue = 'file';
+                if (command) {
+                    this.command = command;
+                }
+                break;
         }
     }
 }
