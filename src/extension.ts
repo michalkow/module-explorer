@@ -122,7 +122,7 @@ class ModulesTreeDataProvider implements vscode.TreeDataProvider<TreeItem> {
             if (moduleNames.length === 0) {
                 // Show helpful message when no modules found
                 const message = vscode.workspace.workspaceFolders 
-                    ? 'No modules found. Looking for: app/**/src/modules/* or packages/**/src/modules/*'
+                    ? 'No modules found. Looking for: apps/**/src/modules/* or packages/**/src/modules/*'
                     : 'No workspace folder open. Please open a folder.';
                     
                 return Promise.resolve([
@@ -197,6 +197,7 @@ class TreeItem extends vscode.TreeItem {
         
         // Style folder labels differently
         if (type === 'folder') {
+	
             // Make folder labels muted and non-interactive
             this.contextValue = 'folder-label';
             // Add visual indicator that this is a label/separator
@@ -206,6 +207,8 @@ class TreeItem extends vscode.TreeItem {
             this.tooltip = undefined;
             // Use collapsibleState None to ensure it's not expandable
             this.collapsibleState = vscode.TreeItemCollapsibleState.None;
+            // Use description to make text appear in muted color (VS Code's built-in styling)
+            this.description = true;
         }
     }
 }
