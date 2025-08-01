@@ -1,71 +1,110 @@
-# module-explorer README
+# Module Explorer
 
-This is the README for your extension "module-explorer". After writing up a brief description, we recommend including the following sections.
+A Visual Studio Code extension that provides a dedicated explorer view for discovering and navigating modules in your workspace. Perfect for monorepo projects with modular architectures.
 
 ## Features
 
-Describe specific features of your extension including screenshots of your extension in action. Image paths are relative to this README file.
+- **Module Discovery**: Automatically scans your workspace for modules located in `src/modules/` directories
+- **Hierarchical View**: Organizes modules by name and groups files by their root folder (app, packages, etc.)
+- **Quick Navigation**: Click on any file to open it directly in the editor
+- **Real-time Updates**: Automatically refreshes when files are added, modified, or deleted
+- **Multi-workspace Support**: Works with multiple workspace folders
+- **Clean Interface**: Provides a focused view of your modular architecture
 
-For example if there is an image subfolder under your extension project workspace:
+## Usage
 
-\!\[feature X\]\(images/feature-x.png\)
+1. Open a workspace folder in VS Code
+2. The "Modules" view will appear in the Explorer panel
+3. Expand module names to see all files organized by their root folder
+4. Click on any file to open it in the editor
 
-> Tip: Many popular extensions utilize animations. This is an excellent way to show off your extension! We recommend short, focused animations that are easy to follow.
+## Supported Project Structure
+
+The extension looks for modules in the following patterns:
+- `apps/**/src/modules/*`
+- `packages/**/src/modules/*`
+
+### Example Structure
+
+```
+workspace/
+├── app/
+│   └── feature1/
+│       └── src/
+│           └── modules/
+│               ├── auth/
+│               │   ├── index.ts
+│               │   └── types.ts
+│               └── users/
+│                   ├── index.ts
+│                   └── api.ts
+└── packages/
+    ├── core/
+    │   └── src/
+    │       └── modules/
+    │           └── utils/
+    │               └── index.ts
+    └── ui/
+        └── src/
+            └── modules/
+                └── components/
+                    └── index.ts
+```
+
+This would display in the Modules explorer as:
+```
+📦 auth
+  app/feature1
+    index.ts
+    types.ts
+
+📦 users
+  app/feature1
+    api.ts
+    index.ts
+
+📦 utils
+  packages/core
+    index.ts
+
+📦 components
+  packages/ui
+    index.ts
+```
 
 ## Requirements
 
-If you have any requirements or dependencies, add a section describing those and how to install and configure them.
+- Visual Studio Code 1.99.3 or higher
+- A workspace with modules following the supported directory structure
 
 ## Extension Settings
 
-Include if your extension adds any VS Code settings through the `contributes.configuration` extension point.
-
-For example:
-
-This extension contributes the following settings:
-
-* `myExtension.enable`: Enable/disable this extension.
-* `myExtension.thing`: Set to `blah` to do something.
+This extension does not currently add any VS Code settings. It automatically activates when a workspace is opened and scans for modules.
 
 ## Known Issues
 
-Calling out known issues can help limit users opening duplicate issues against your extension.
+- The extension currently only supports TypeScript/JavaScript files
+- Module scanning is limited to the `src/modules/` pattern
+- Large workspaces with many modules may experience slower initial scanning
 
 ## Release Notes
 
-Users appreciate release notes as you update your extension.
+### 0.0.1
 
-### 1.0.0
+Initial release of Module Explorer:
+- Basic module discovery and tree view
+- File navigation capabilities
+- Real-time file system watching
+- Support for multi-workspace projects
 
-Initial release of ...
+## Contributing
 
-### 1.0.1
+Feel free to submit issues and enhancement requests!
 
-Fixed issue #.
+## License
 
-### 1.1.0
-
-Added features X, Y, and Z.
+This extension is provided as-is for educational and development purposes.
 
 ---
 
-## Following extension guidelines
-
-Ensure that you've read through the extensions guidelines and follow the best practices for creating your extension.
-
-* [Extension Guidelines](https://code.visualstudio.com/api/references/extension-guidelines)
-
-## Working with Markdown
-
-You can author your README using Visual Studio Code. Here are some useful editor keyboard shortcuts:
-
-* Split the editor (`Cmd+\` on macOS or `Ctrl+\` on Windows and Linux).
-* Toggle preview (`Shift+Cmd+V` on macOS or `Shift+Ctrl+V` on Windows and Linux).
-* Press `Ctrl+Space` (Windows, Linux, macOS) to see a list of Markdown snippets.
-
-## For more information
-
-* [Visual Studio Code's Markdown Support](http://code.visualstudio.com/docs/languages/markdown)
-* [Markdown Syntax Reference](https://help.github.com/articles/markdown-basics/)
-
-**Enjoy!**
+**Enjoy exploring your modules! 🚀**
