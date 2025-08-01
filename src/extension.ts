@@ -6,6 +6,7 @@ type ModuleFile = {
     moduleName: string;
     filePath: string;
     label: string;
+    rootFolder: string; // The folder above src/modules (e.g., 'app', 'packages/core')
 };
 
 export function activate(context: vscode.ExtensionContext) {
@@ -82,12 +83,24 @@ class ModulesTreeDataProvider implements vscode.TreeDataProvider<TreeItem> {
             for (const modDir of found) {
                 const moduleName = path.basename(modDir);
                 const files = await fg(path.join(modDir, '**/*.*'), { onlyFiles: true });
-                if (!moduleMap[moduleName]) moduleMap[moduleName] = [];
+                if (!moduleMap[moduleName]) {
+                    moduleMap[moduleName] = [];
+                }
+                
+                // Extract the root folder (the folder above src/modules)
+                const relativePath = path.relative(root, modDir);
+                const pathParts = relativePath.split(path.sep);
+                // Find the index of 'src' in the path
+                const srcIndex = pathParts.indexOf('src');
+                // The root folder is everything before 'src'
+                const rootFolder = srcIndex > 0 ? pathParts.slice(0, srcIndex).join('/') : pathParts[0];
+                
                 for (const file of files) {
                     moduleMap[moduleName].push({
                         moduleName,
                         filePath: file,
-                        label: path.relative(root, file)
+                        label: path.basename(file), // Only filename, not full path
+                        rootFolder
                     });
                 }
             }
@@ -111,41 +124,79 @@ class ModulesTreeDataProvider implements vscode.TreeDataProvider<TreeItem> {
                     : 'No workspace folder open. Please open a folder.';
                     
                 return Promise.resolve([
-                    new TreeItem(message, vscode.TreeItemCollapsibleState.None)
+                    new TreeItem(message, vscode.TreeItemCollapsibleState.None, 'file')
                 ]);
             }
             
             return Promise.resolve(moduleNames
                 .sort()
-                .map(m => new TreeItem(m, vscode.TreeItemCollapsibleState.Collapsed)));
+                .map(m => new TreeItem(m, vscode.TreeItemCollapsibleState.Collapsed, 'module')));
         }
-        if (this.modules[element.label as string]) {
-            // children: files
-            return Promise.resolve(this.modules[element.label as string].map(file =>
-                new TreeItem(
-                    file.label,
-                    vscode.TreeItemCollapsibleState.None,
-                    {
-                        command: 'modulesExplorer.openFile',
-                        title: 'Open File',
-                        arguments: [file.filePath]
-                    }
-                )
-            ));
+        
+        if (element.type === 'module' && this.modules[element.label as string]) {
+            // Group files by root folder
+            const files = this.modules[element.label as string];
+            const folderGroups: Record<string, ModuleFile[]> = {};
+            
+            files.forEach(file => {
+                if (!folderGroups[file.rootFolder]) {
+                    folderGroups[file.rootFolder] = [];
+                }
+                folderGroups[file.rootFolder].push(file);
+            });
+            
+            const items: TreeItem[] = [];
+            
+            // Sort folders and create tree items
+            Object.keys(folderGroups).sort().forEach(folder => {
+                // Add folder label
+                items.push(new TreeItem(folder, vscode.TreeItemCollapsibleState.None, 'folder'));
+                
+                // Add files under this folder
+                folderGroups[folder].sort((a, b) => a.label.localeCompare(b.label)).forEach(file => {
+                    items.push(new TreeItem(
+                        file.label,
+                        vscode.TreeItemCollapsibleState.None,
+                        'file',
+                        {
+                            command: 'modulesExplorer.openFile',
+                            title: 'Open File',
+                            arguments: [file.filePath]
+                        }
+                    ));
+                });
+            });
+            
+            return Promise.resolve(items);
         }
+        
         return Promise.resolve([]);
     }
 }
 
 class TreeItem extends vscode.TreeItem {
+    public type: 'module' | 'folder' | 'file';
+    public data?: any;
+    
     constructor(
         label: string,
         collapsibleState: vscode.TreeItemCollapsibleState,
-        command?: vscode.Command
+        type: 'module' | 'folder' | 'file' = 'file',
+        command?: vscode.Command,
+        data?: any
     ) {
         super(label, collapsibleState);
-        if (command) this.command = command;
-        this.contextValue = 'file';
+        this.type = type;
+        this.data = data;
+        if (command) {
+            this.command = command;
+        }
+        this.contextValue = type;
+        
+        // Style folder labels differently
+        if (type === 'folder') {
+            this.description = true; // This makes the text smaller/grayed
+        }
     }
 }
 

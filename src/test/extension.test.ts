@@ -123,8 +123,8 @@ suite('Module Explorer Extension Test Suite', () => {
 		
 		// Manually set some test data
 		provider.modules = {
-			'module1': [{ moduleName: 'module1', filePath: '/test/path1', label: 'file1.ts' }],
-			'module2': [{ moduleName: 'module2', filePath: '/test/path2', label: 'file2.ts' }]
+			'module1': [{ moduleName: 'module1', filePath: '/test/path1', label: 'file1.ts', rootFolder: 'test' }],
+			'module2': [{ moduleName: 'module2', filePath: '/test/path2', label: 'file2.ts', rootFolder: 'test' }]
 		};
 		
 		const children = await provider.getChildren();
@@ -139,23 +139,26 @@ suite('Module Explorer Extension Test Suite', () => {
 		
 		// Set test data
 		const testFiles = [
-			{ moduleName: 'testModule', filePath: '/test/file1.ts', label: 'src/file1.ts' },
-			{ moduleName: 'testModule', filePath: '/test/file2.ts', label: 'src/file2.ts' }
+			{ moduleName: 'testModule', filePath: '/test/file1.ts', label: 'src/file1.ts', rootFolder: 'test' },
+			{ moduleName: 'testModule', filePath: '/test/file2.ts', label: 'src/file2.ts', rootFolder: 'test' }
 		];
 		provider.modules = { 'testModule': testFiles };
 		
 		// Create a tree item for the module
-		const moduleItem = new myExtension.TreeItem('testModule', vscode.TreeItemCollapsibleState.Collapsed);
+		const moduleItem = new myExtension.TreeItem('testModule', vscode.TreeItemCollapsibleState.Collapsed, 'module');
 		
 		const children = await provider.getChildren(moduleItem);
 		
-		assert.strictEqual(children.length, 2, 'Should return 2 files');
-		assert.strictEqual(children[0].label, 'src/file1.ts', 'First file label incorrect');
-		assert.strictEqual(children[1].label, 'src/file2.ts', 'Second file label incorrect');
+		// With the new structure, we should have: folder label, then files
+		assert.strictEqual(children.length, 3, 'Should return 1 folder label + 2 files');
+		assert.strictEqual(children[0].label, 'test', 'First item should be folder label');
+		assert.strictEqual(children[1].label, 'src/file1.ts', 'Second item should be first file');
+		assert.strictEqual(children[2].label, 'src/file2.ts', 'Third item should be second file');
 		
-		// Verify the command is set on file items
-		assert.ok(children[0].command, 'File item should have command');
-		assert.strictEqual(children[0].command.command, 'modulesExplorer.openFile', 'Command should be openFile');
+		// Verify the command is set on file items (not on folder label)
+		assert.ok(!children[0].command, 'Folder label should not have command');
+		assert.ok(children[1].command, 'File item should have command');
+		assert.strictEqual(children[1].command.command, 'modulesExplorer.openFile', 'Command should be openFile');
 	});
 
 	test('Tree provider should show message when no modules found', async () => {
