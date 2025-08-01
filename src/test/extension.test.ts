@@ -151,7 +151,7 @@ suite('Module Explorer Extension Test Suite', () => {
 		
 		// With the new structure, we should have: folder label, then files
 		assert.strictEqual(children.length, 3, 'Should return 1 folder label + 2 files');
-		assert.strictEqual(children[0].label, 'test', 'First item should be folder label');
+		assert.strictEqual(children[0].label, '— test —', 'First item should be folder label');
 		assert.strictEqual(children[1].label, 'src/file1.ts', 'Second item should be first file');
 		assert.strictEqual(children[2].label, 'src/file2.ts', 'Third item should be second file');
 		

@@ -26,6 +26,8 @@ export function activate(context: vscode.ExtensionContext) {
             vscode.window.showTextDocument(vscode.Uri.file(filePath));
         })
     );
+    
+
 }
 
 class ModulesTreeDataProvider implements vscode.TreeDataProvider<TreeItem> {
@@ -195,7 +197,15 @@ class TreeItem extends vscode.TreeItem {
         
         // Style folder labels differently
         if (type === 'folder') {
-            this.description = true; // This makes the text smaller/grayed
+            // Make folder labels muted and non-interactive
+            this.contextValue = 'folder-label';
+            // Add visual indicator that this is a label/separator
+            this.label = `— ${label} —`;
+            // Make it non-selectable
+            this.command = undefined;
+            this.tooltip = undefined;
+            // Use collapsibleState None to ensure it's not expandable
+            this.collapsibleState = vscode.TreeItemCollapsibleState.None;
         }
     }
 }
