@@ -12,6 +12,11 @@
     "Programming Languages",
     "Visualization"
   ],
+  "keywords": ["modules", "explorer", "monorepo", "navigation", "workspace"],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/michalkow/module-explorer"
+  },
   "galleryBanner": {
     "color": "#1e1e1e",
     "theme": "dark"

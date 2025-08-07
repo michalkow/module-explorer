@@ -1,9 +1,8 @@
 # Change Log
 
-All notable changes to the "module-explorer" extension will be documented in this file.
+## [0.0.1] - 2025-08-07
 
-Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
-
-## [Unreleased]
-
+### Added
 - Initial release
+- Core Modules Explorer view
+- Configurable directories & file patterns
