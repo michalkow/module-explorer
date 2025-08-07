@@ -1,14 +1,21 @@
 {
   "name": "module-explorer",
   "displayName": "Module Explorer",
-  "description": "",
+  "description": "Navigate your codebase by logical modules rather than nested folders",
   "version": "0.0.1",
+  "icon": "icon.png",
   "engines": {
     "vscode": "^1.99.3"
   },
   "categories": [
-    "Other"
+    "Other",
+    "Programming Languages",
+    "Visualization"
   ],
+  "galleryBanner": {
+    "color": "#1e1e1e",
+    "theme": "dark"
+  },
   "activationEvents": [
     "onStartupFinished"
   ],
