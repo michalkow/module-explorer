@@ -3,7 +3,8 @@
   "displayName": "Module Explorer",
   "description": "Navigate your codebase by logical modules rather than nested folders",
   "version": "0.0.1",
-  "icon": "icon.png",
+  "publisher": "mnkow",
+  "icon": "logo.png",
   "engines": {
     "vscode": "^1.99.3"
   },

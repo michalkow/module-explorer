@@ -1,4 +1,4 @@
-# Modules Explorer
+# Module Explorer
 
 **Navigate your codebase by logical modules rather than nested folders.**
 
@@ -19,6 +19,10 @@ Modern repositories often scatter a single feature’s files across separate fro
 * **One‑click navigation** – open any file straight from the tree.
 - **Clean Interface**: Provides a focused view of your modular architecture
 
+## Screenshot
+
+![Module Explorer in action](screenshot.png)
+
 ## Installation
 
 1. Launch VS Code.
@@ -28,7 +32,7 @@ Modern repositories often scatter a single feature’s files across separate fro
 *…or from the command line:*
 
 ```bash
-code --install-extension yourpublisher.modules-explorer
+code --install-extension mnkow.module-explorer
 ```
 
 ## Usage
