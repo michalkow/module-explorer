@@ -35,6 +35,7 @@ class ModulesTreeDataProvider implements vscode.TreeDataProvider<TreeItem> {
     readonly onDidChangeTreeData: vscode.Event<TreeItem | undefined | void> = this._onDidChangeTreeData.event;
 
     public modules: Record<string, ModuleFile[]> = {};  // Made public for testing
+    private fileWatcher: vscode.FileSystemWatcher | undefined;
 
     constructor() {
         this.refresh();
@@ -45,11 +46,36 @@ class ModulesTreeDataProvider implements vscode.TreeDataProvider<TreeItem> {
             this.refresh();
         });
         
+        // Listen for configuration changes
+        vscode.workspace.onDidChangeConfiguration(e => {
+            if (e.affectsConfiguration('modulesExplorer')) {
+                console.log('Configuration changed, refreshing...');
+                // Recreate file watcher with new configuration
+                this.setupFileWatcher();
+                this.refresh();
+            }
+        });
+        
         // Also refresh when files change
-        const watcher = vscode.workspace.createFileSystemWatcher('**/**/src/modules/**/*');
-        watcher.onDidCreate(() => this.refresh());
-        watcher.onDidDelete(() => this.refresh());
-        watcher.onDidChange(() => this.refresh());
+        this.setupFileWatcher();
+    }
+
+    private setupFileWatcher() {
+        // Dispose of existing watcher if any
+        if (this.fileWatcher) {
+            this.fileWatcher.dispose();
+        }
+        
+        const config = vscode.workspace.getConfiguration('modulesExplorer');
+        const modulesFolder = config.get<string>('modulesFolder', 'modules');
+        
+        // Create file watcher based on configuration
+        const pattern = `**/**/src/${modulesFolder}/**/*`;
+        this.fileWatcher = vscode.workspace.createFileSystemWatcher(pattern);
+        
+        this.fileWatcher.onDidCreate(() => this.refresh());
+        this.fileWatcher.onDidDelete(() => this.refresh());
+        this.fileWatcher.onDidChange(() => this.refresh());
     }
 
     async refresh() {
@@ -58,52 +84,97 @@ class ModulesTreeDataProvider implements vscode.TreeDataProvider<TreeItem> {
     }
 
     async scanModules(): Promise<Record<string, ModuleFile[]>> {
+        const config = vscode.workspace.getConfiguration('modulesExplorer');
+        const configuredDirectories = config.get<string[]>('directories', []);
+        const modulesFolder = config.get<string>('modulesFolder', 'modules');
+        const filePattern = config.get<string>('filePattern', '*.*');
+        
         const roots = vscode.workspace.workspaceFolders?.map(f => f.uri.fsPath) ?? [];
         
-        if (roots.length === 0) {
-            console.log('No workspace folders open');
-            vscode.window.showWarningMessage('Module Explorer: No workspace folder open. Please open a folder to scan for modules.');
+        if (roots.length === 0 && configuredDirectories.length === 0) {
+            console.log('No workspace folders open and no directories configured');
+            vscode.window.showWarningMessage('Module Explorer: No workspace folder open and no directories configured. Please open a folder or configure directories to scan for modules.');
             return {};
         }
         
-        const patterns = [
-            'apps/**/src/modules/*',
-            'packages/**/src/modules/*'
-        ];
+        // Build patterns based on configuration
+        const patterns: string[] = [];
+        
+        // If configured directories are provided, use them
+        if (configuredDirectories.length > 0) {
+            patterns.push(...configuredDirectories);
+        } else {
+            // Otherwise use the default patterns with the configured modules folder name
+            patterns.push(
+                `apps/**/src/${modulesFolder}/*`,
+                `packages/**/src/${modulesFolder}/*`
+            );
+        }
+        
         let moduleMap: Record<string, ModuleFile[]> = {};
 
-        console.log('Scanning workspace roots:', roots);
-        console.log('Looking for patterns:', patterns);
+        console.log('Scanning with patterns:', patterns);
         
-        for (const root of roots) {
-            const searchPatterns = patterns.map(p => path.join(root, p));
-            console.log('Searching in:', searchPatterns);
-            
-            const found = await fg(searchPatterns, { onlyDirectories: true, deep: 4 });
-            console.log(`Found ${found.length} module directories in ${root}`);
+        // Handle configured directories which might be absolute paths or glob patterns
+        if (configuredDirectories.length > 0) {
+            // Process configured directories/patterns directly
+            const found = await fg(patterns, { onlyDirectories: true, absolute: true });
+            console.log(`Found ${found.length} module directories from configured patterns`);
             
             for (const modDir of found) {
                 const moduleName = path.basename(modDir);
-                const files = await fg(path.join(modDir, '**/*.*'), { onlyFiles: true });
+                const files = await fg(path.join(modDir, '**', filePattern), { onlyFiles: true });
                 if (!moduleMap[moduleName]) {
                     moduleMap[moduleName] = [];
                 }
                 
-                // Extract the root folder (the folder above src/modules)
-                const relativePath = path.relative(root, modDir);
-                const pathParts = relativePath.split(path.sep);
-                // Find the index of 'src' in the path
-                const srcIndex = pathParts.indexOf('src');
-                // The root folder is everything before 'src'
-                const rootFolder = srcIndex > 0 ? pathParts.slice(0, srcIndex).join('/') : pathParts[0];
+                // For configured directories, use the parent directory name as root folder
+                const parentDir = path.dirname(modDir);
+                const rootFolder = path.basename(parentDir);
                 
                 for (const file of files) {
                     moduleMap[moduleName].push({
                         moduleName,
                         filePath: file,
-                        label: path.basename(file), // Only filename, not full path
+                        label: path.basename(file),
                         rootFolder
                     });
+                }
+            }
+        } else {
+            // Use default patterns with workspace roots
+            console.log('Scanning workspace roots:', roots);
+            
+            for (const root of roots) {
+                const searchPatterns = patterns.map(p => path.join(root, p));
+                console.log('Searching in:', searchPatterns);
+                
+                const found = await fg(searchPatterns, { onlyDirectories: true });
+                console.log(`Found ${found.length} module directories in ${root}`);
+                
+                for (const modDir of found) {
+                    const moduleName = path.basename(modDir);
+                    const files = await fg(path.join(modDir, '**', filePattern), { onlyFiles: true });
+                    if (!moduleMap[moduleName]) {
+                        moduleMap[moduleName] = [];
+                    }
+                    
+                    // Extract the root folder (the folder above src/modules)
+                    const relativePath = path.relative(root, modDir);
+                    const pathParts = relativePath.split(path.sep);
+                    // Find the index of 'src' in the path
+                    const srcIndex = pathParts.indexOf('src');
+                    // The root folder is everything before 'src'
+                    const rootFolder = srcIndex > 0 ? pathParts.slice(0, srcIndex).join('/') : pathParts[0];
+                    
+                    for (const file of files) {
+                        moduleMap[moduleName].push({
+                            moduleName,
+                            filePath: file,
+                            label: path.basename(file),
+                            rootFolder
+                        });
+                    }
                 }
             }
         }
@@ -121,9 +192,18 @@ class ModulesTreeDataProvider implements vscode.TreeDataProvider<TreeItem> {
             
             if (moduleNames.length === 0) {
                 // Show helpful message when no modules found
-                const message = vscode.workspace.workspaceFolders 
-                    ? 'No modules found. Looking for: apps/**/src/modules/* or packages/**/src/modules/*'
-                    : 'No workspace folder open. Please open a folder.';
+                const config = vscode.workspace.getConfiguration('modulesExplorer');
+                const configuredDirectories = config.get<string[]>('directories', []);
+                const modulesFolder = config.get<string>('modulesFolder', 'modules');
+                
+                let message = 'No modules found.';
+                if (configuredDirectories.length > 0) {
+                    message += ` Looking in configured directories: ${configuredDirectories.join(', ')}`;
+                } else if (vscode.workspace.workspaceFolders) {
+                    message += ` Looking for: apps/**/src/${modulesFolder}/* or packages/**/src/${modulesFolder}/*`;
+                } else {
+                    message = 'No workspace folder open and no directories configured. Please open a folder or configure directories.';
+                }
                     
                 return Promise.resolve([
                     new TreeItem(message, vscode.TreeItemCollapsibleState.None, 'file')

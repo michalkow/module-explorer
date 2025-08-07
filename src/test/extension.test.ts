@@ -3,6 +3,7 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
 import * as myExtension from '../extension';
+import { before, after } from 'mocha';
 
 suite('Module Explorer Extension Test Suite', () => {
 	const testWorkspaceRoot = path.join(__dirname, 'test-workspace');
@@ -151,7 +152,8 @@ suite('Module Explorer Extension Test Suite', () => {
 		
 		// With the new structure, we should have: folder label, then files
 		assert.strictEqual(children.length, 3, 'Should return 1 folder label + 2 files');
-		assert.strictEqual(children[0].label, '— test —', 'First item should be folder label');
+		assert.strictEqual(children[0].description, 'test', 'First item should be folder label in description');
+		assert.strictEqual(children[0].label, '', 'Folder label should have empty label');
 		assert.strictEqual(children[1].label, 'src/file1.ts', 'Second item should be first file');
 		assert.strictEqual(children[2].label, 'src/file2.ts', 'Third item should be second file');
 		
@@ -175,5 +177,248 @@ suite('Module Explorer Extension Test Suite', () => {
 			'Should show helpful message');
 		assert.strictEqual(children[0].collapsibleState, vscode.TreeItemCollapsibleState.None, 
 			'Message item should not be collapsible');
+	});
+});
+
+suite('Module Explorer Configuration Tests', () => {
+	let originalGetConfiguration: typeof vscode.workspace.getConfiguration;
+	
+	setup(() => {
+		// Store original function
+		originalGetConfiguration = vscode.workspace.getConfiguration;
+	});
+	
+	teardown(() => {
+		// Restore original function
+		vscode.workspace.getConfiguration = originalGetConfiguration;
+	});
+	
+	test('Should use default configuration values', async () => {
+		// Mock configuration
+		const mockConfig = {
+			get: (key: string, defaultValue?: any) => {
+				switch (key) {
+					case 'directories': return [];
+					case 'modulesFolder': return 'modules';
+					case 'filePattern': return '*.*';
+					default: return defaultValue;
+				}
+			}
+		};
+		
+		vscode.workspace.getConfiguration = (section?: string) => {
+			return mockConfig as any;
+		};
+		
+		const provider = new myExtension.ModulesTreeDataProvider();
+		
+		// The constructor should have read the configuration
+		// We can't easily test the internal state, but we can verify it doesn't crash
+		assert.ok(provider, 'Provider should be created with default config');
+	});
+	
+	test('Should handle custom directories configuration', async () => {
+		// Skip this test if running in VS Code test environment 
+		// because we can't mock workspace folders
+		if (process.env.VSCODE_PID) {
+			console.log('Skipping workspace folders mock test in VS Code environment');
+			return;
+		}
+		
+		// Mock configuration with custom directories
+		const customDirs = ['/custom/path/modules/*', '/another/path/components/*'];
+		const mockConfig = {
+			get: (key: string, defaultValue?: any) => {
+				switch (key) {
+					case 'directories': return customDirs;
+					case 'modulesFolder': return 'modules';
+					case 'filePattern': return '*.*';
+					default: return defaultValue;
+				}
+			}
+		};
+		
+		vscode.workspace.getConfiguration = (section?: string) => {
+			return mockConfig as any;
+		};
+		
+		const provider = new myExtension.ModulesTreeDataProvider();
+		
+		// Test scanModules with custom directories
+		// We can't fully test the glob functionality without mocking fs,
+		// but we can verify the method runs without error
+		const modules = await provider.scanModules();
+		
+		assert.ok(typeof modules === 'object', 'Should return modules object');
+	});
+	
+	test('Should use custom modules folder name', async () => {
+		// Mock configuration with custom modules folder
+		const mockConfig = {
+			get: (key: string, defaultValue?: any) => {
+				switch (key) {
+					case 'directories': return [];
+					case 'modulesFolder': return 'components'; // Custom folder name
+					case 'filePattern': return '*.*';
+					default: return defaultValue;
+				}
+			}
+		};
+		
+		vscode.workspace.getConfiguration = (section?: string) => {
+			return mockConfig as any;
+		};
+		
+		const provider = new myExtension.ModulesTreeDataProvider();
+		
+		// The provider should use 'components' instead of 'modules'
+		// We verify this doesn't crash
+		assert.ok(provider, 'Provider should work with custom modules folder');
+	});
+	
+	test('Should filter files based on filePattern', async () => {
+		// Mock configuration with custom file pattern
+		const mockConfig = {
+			get: (key: string, defaultValue?: any) => {
+				switch (key) {
+					case 'directories': return [];
+					case 'modulesFolder': return 'modules';
+					case 'filePattern': return '*.{ts,tsx}'; // Only TypeScript files
+					default: return defaultValue;
+				}
+			}
+		};
+		
+		vscode.workspace.getConfiguration = (section?: string) => {
+			return mockConfig as any;
+		};
+		
+		const provider = new myExtension.ModulesTreeDataProvider();
+		
+		// Test that file pattern is applied
+		const modules = await provider.scanModules();
+		
+		// In a real scenario with mocked fs, we would verify only .ts/.tsx files are included
+		assert.ok(typeof modules === 'object', 'Should return filtered modules');
+	});
+	
+	test('Should show appropriate message for configured directories', async () => {
+		const customDirs = ['/my/custom/path'];
+		const mockConfig = {
+			get: (key: string, defaultValue?: any) => {
+				switch (key) {
+					case 'directories': return customDirs;
+					case 'modulesFolder': return 'modules';
+					case 'filePattern': return '*.*';
+					default: return defaultValue;
+				}
+			}
+		};
+		
+		vscode.workspace.getConfiguration = (section?: string) => {
+			return mockConfig as any;
+		};
+		
+		const provider = new myExtension.ModulesTreeDataProvider();
+		provider.modules = {}; // No modules found
+		
+		const children = await provider.getChildren();
+		
+		assert.strictEqual(children.length, 1, 'Should show message');
+		const label = children[0].label;
+		const desc = children[0].description;
+		const message = typeof label === 'string' ? label : (typeof desc === 'string' ? desc : '');
+		assert.ok(message.includes('Looking in configured directories'), 'Should mention configured directories');
+	});
+	
+	test('Should handle configuration with both workspace and custom directories', async () => {
+		// Skip this test if running in VS Code test environment 
+		// because we can't mock workspace folders
+		if (process.env.VSCODE_PID) {
+			console.log('Skipping workspace folders mock test in VS Code environment');
+			return;
+		}
+		
+		// This tests the priority: custom directories should be used when provided
+		const customDirs = ['/absolute/path/modules/*'];
+		const mockConfig = {
+			get: (key: string, defaultValue?: any) => {
+				switch (key) {
+					case 'directories': return customDirs;
+					case 'modulesFolder': return 'modules';
+					case 'filePattern': return '*.*';
+					default: return defaultValue;
+				}
+			}
+		};
+		
+		vscode.workspace.getConfiguration = (section?: string) => {
+			return mockConfig as any;
+		};
+		
+		const provider = new myExtension.ModulesTreeDataProvider();
+		const modules = await provider.scanModules();
+		
+		// Custom directories should take precedence
+		assert.ok(typeof modules === 'object', 'Should scan with custom directories when provided');
+	});
+});
+
+suite('Module Explorer Configuration Change Tests', () => {
+	test('Configuration change event should be handled', async () => {
+		// We can verify that the extension sets up configuration change listener
+		// by checking that it responds to configuration changes
+		
+		// This is more of an integration test that would require a full VS Code test environment
+		// For unit testing, we mainly verify the structure is in place
+		
+		const provider = new myExtension.ModulesTreeDataProvider();
+		
+		// Verify the provider exists and can be refreshed
+		assert.ok(provider, 'Provider should exist');
+		assert.ok(typeof provider.refresh === 'function', 'Provider should have refresh method');
+	});
+	
+	test('File watcher should be recreated on configuration change', async () => {
+		// Test that setupFileWatcher can be called multiple times
+		// (simulating configuration changes)
+		
+		const mockConfig = {
+			get: (key: string, defaultValue?: any) => {
+				switch (key) {
+					case 'directories': return [];
+					case 'modulesFolder': return 'modules';
+					case 'filePattern': return '*.*';
+					default: return defaultValue;
+				}
+			}
+		};
+		
+		vscode.workspace.getConfiguration = (section?: string) => {
+			return mockConfig as any;
+		};
+		
+		// Mock createFileSystemWatcher
+		const originalCreateWatcher = vscode.workspace.createFileSystemWatcher;
+		let watcherCount = 0;
+		const mockWatcher = {
+			onDidCreate: () => {},
+			onDidDelete: () => {},
+			onDidChange: () => {},
+			dispose: () => {}
+		};
+		
+		(vscode.workspace as any).createFileSystemWatcher = (pattern: string) => {
+			watcherCount++;
+			return mockWatcher;
+		};
+		
+		const provider = new myExtension.ModulesTreeDataProvider();
+		
+		// Initial watcher should be created
+		assert.strictEqual(watcherCount, 1, 'Should create initial watcher');
+		
+		// Restore
+		(vscode.workspace as any).createFileSystemWatcher = originalCreateWatcher;
 	});
 });

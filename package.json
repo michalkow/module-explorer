@@ -21,6 +21,29 @@
           "name": "Modules"
         }
       ]
+    },
+    "configuration": {
+      "title": "Modules Explorer",
+      "properties": {
+        "modulesExplorer.directories": {
+          "type": "array",
+          "default": [],
+          "description": "Array of absolute paths or glob patterns that point to folders with module directories.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "modulesExplorer.modulesFolder": {
+          "type": "string",
+          "default": "modules",
+          "description": "Name of the modules directory."
+        },
+        "modulesExplorer.filePattern": {
+          "type": "string",
+          "default": "*.*",
+          "description": "Glob pattern for files to show inside a module."
+        }
+      }
     }
   },
   "scripts": {

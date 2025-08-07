@@ -1,15 +1,35 @@
-# Module Explorer
+# Modules Explorer
 
-A Visual Studio Code extension that provides a dedicated explorer view for discovering and navigating modules in your workspace. Perfect for monorepo projects with modular architectures.
+**Navigate your codebase by logical modules rather than nested folders.**
+
+> Perfect for monorepos, micro‑services, and any project where related files live in different packages or layers.
+
+---
+
+## Motivation
+
+Modern repositories often scatter a single feature’s files across separate front‑end and back‑end packages. Scrolling through the regular *File Explorer* gets tedious when `user.model.ts`, `user.controller.ts`, and `user.service.ts` live miles apart. **Modules Explorer** lets you see those files side‑by‑side in one dedicated view, so you can stay focused on features instead of folders.
 
 ## Features
 
-- **Module Discovery**: Automatically scans your workspace for modules located in `src/modules/` directories
-- **Hierarchical View**: Organizes modules by name and groups files by their root folder (app, packages, etc.)
-- **Quick Navigation**: Click on any file to open it directly in the editor
-- **Real-time Updates**: Automatically refreshes when files are added, modified, or deleted
-- **Multi-workspace Support**: Works with multiple workspace folders
+* **Modules Explorer View** – a new tree in the Activity Bar that groups every *module* (folder) and displays its files in a flat list.
+* **Monorepo‑friendly** – works across multiple workspace folders and package managers.
+* **Configurable roots** – point the extension at the directories that contain your modules (e.g. `packages/*/src/modules`).
+* **Globs & patterns** – include or exclude files with familiar glob syntax.
+* **One‑click navigation** – open any file straight from the tree.
 - **Clean Interface**: Provides a focused view of your modular architecture
+
+## Installation
+
+1. Launch VS Code.
+2. Open the **Extensions** view (`Ctrl+Shift+X`).
+3. Search for **“Modules Explorer”** and click **Install**.
+
+*…or from the command line:*
+
+```bash
+code --install-extension yourpublisher.modules-explorer
+```
 
 ## Usage
 
@@ -18,13 +38,15 @@ A Visual Studio Code extension that provides a dedicated explorer view for disco
 3. Expand module names to see all files organized by their root folder
 4. Click on any file to open it in the editor
 
-## Supported Project Structure
+## Extension Settings
 
-The extension looks for modules in the following patterns:
-- `apps/**/src/modules/*`
-- `packages/**/src/modules/*`
+| Setting                       | Type       | Default | Description                                                                |
+| ----------------------------- | ---------- | ------- | -------------------------------------------------------------------------- |
+| `modulesExplorer.directories` | `string[]` | `[]`    | Array of absolute paths or glob patterns that point to folders with module directories. |
+| `modulesExplorer.modulesFolder` | `string`  | `modules`  | Name of the modules directory.                          |
+| `modulesExplorer.filePattern` | `string`   | `*.*`   | Glob pattern for files to show inside a module.                            |
 
-### Example Structure
+## Example Structure
 
 ```
 workspace/
@@ -74,37 +96,25 @@ This would display in the Modules explorer as:
 
 ## Requirements
 
-- Visual Studio Code 1.99.3 or higher
-- A workspace with modules following the supported directory structure
-
-## Extension Settings
-
-This extension does not currently add any VS Code settings. It automatically activates when a workspace is opened and scans for modules.
+No additional dependencies – it runs anywhere VS Code does.
 
 ## Known Issues
 
-- The extension currently only supports TypeScript/JavaScript files
-- Module scanning is limited to the `src/modules/` pattern
-- Large workspaces with many modules may experience slower initial scanning
+None so far. Found a bug? [Open an issue](https://github.com/yourusername/modules-explorer/issues).
 
 ## Release Notes
 
-### 0.0.1
+### 0.0.1 – *Initial release*
 
-Initial release of Module Explorer:
-- Basic module discovery and tree view
-- File navigation capabilities
-- Real-time file system watching
-- Support for multi-workspace projects
-
-## Contributing
-
-Feel free to submit issues and enhancement requests!
-
-## License
-
-This extension is provided as-is for educational and development purposes.
+* Core **Modules Explorer** view
+* Configurable directories & file patterns
 
 ---
 
-**Enjoy exploring your modules! 🚀**
+## Contributing
+
+Pull requests are welcome! Please read the [contribution guide](CONTRIBUTING.md) first.
+
+## License
+
+[MIT](LICENSE)
